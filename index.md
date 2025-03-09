@@ -1,7 +1,6 @@
 ---
 layout: default
-title: Home
+title: Health Buddy Reports  # Changed to match site title
 ---
-# Health Buddy Reports
 - [Reports](reports/)
 - [Summaries](summaries/)
