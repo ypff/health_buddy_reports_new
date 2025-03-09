@@ -54,7 +54,7 @@
       .then(data => {
         const reportList = document.getElementById("report-list");
         data.forEach(item => {
-          if (item.name !== "index.md") {  // Hide index.md
+          if (item.name !== "index.html") {  // Hide index.html
             const li = document.createElement("li");
             const a = document.createElement("a");
             a.href = baseUrl + item.name;
@@ -69,7 +69,7 @@
                   const ul = document.createElement("ul");
                   ul.className = "subfolder";
                   files.forEach(file => {
-                    if (file.name !== "index.md") {  // Hide index.md in subfolders
+                    if (file.name !== "index.html") {  // Hide index.html in subfolders
                       const fileLi = document.createElement("li");
                       const fileA = document.createElement("a");
                       fileA.href = baseUrl + item.name + "/" + file.name;
