@@ -2,5 +2,6 @@
 layout: default
 title: Home
 ---
-- [Reports](/reports/)
-- [Summaries](/summaries/)
+# Health Buddy Reports
+- [Reports](reports/)
+- [Summaries](summaries/)
