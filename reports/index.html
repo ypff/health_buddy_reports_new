@@ -107,12 +107,7 @@
                     if (file.name !== "index.html" && file.name !== "index.md") {
                       if (file.type === "dir") {
                         const subLi = document.createElement("li");
-                        subLi.className = "collapsed";
-                        const subBtn = document.createElement("button");
-                        subBtn.className = "toggle-btn";
-                        subBtn.textContent = file.name + ":";
-                        subBtn.onclick = () => subLi.classList.toggle("collapsed");
-                        subLi.appendChild(subBtn);
+                        subLi.textContent = file.name + ":"; // Static label, no button
                         subLi.dataset.search = `${item.name} ${file.name}`.toLowerCase();
                         subLi.dataset.id = `${item.name}/${file.name}`;
                         subLi.dataset.parentId = item.name;
