@@ -1,8 +1,11 @@
-<!DOCTYPE html>
-<html>
-<head><title>Reports</title></head>
-<body>
-  <h1>Reports</h1>
-  <p>List your reports here.</p>
-</body>
-</html>
+---
+layout: default
+title: Reports
+---
+# Reports
+Browse all reports below:
+{% for item in site.static_files %}
+  {% if item.path contains "reports/" and item.path != "/reports/index.md" %}
+    - [{{ item.basename }}]({{ item.path | relative_url }})
+  {% endif %}
+{% endfor %}
