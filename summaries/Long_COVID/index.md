@@ -7,8 +7,8 @@ title: Long COVID Summaries
 Browse the available summaries below:
 
 {% for page in site.pages %}
-  {% if page.path contains "summaries/Long_COVID/summary_" and page.extname == ".md" %}
-  - [{{ page.name | replace: ".md", "" }}]({{ page.url | relative_url }})
+  {% if page.path contains "summaries/Long_COVID/summary_" %}
+  - [{{ page.title }}]({{ page.url | relative_url }})
   {% endif %}
 {% endfor %}
 
