@@ -62,7 +62,7 @@
     const repoUrl = "https://api.github.com/repos/ypff/health_buddy_reports_new/contents/reports";
     const baseUrl = "https://ypff.github.io/health_buddy_reports_new/reports/";
 
-    let allItems = []; // Store all list items for filtering
+    let allItems = []; // Store all list items with hierarchy info
 
     fetch(repoUrl)
       .then(response => response.json())
@@ -73,9 +73,10 @@
             if (item.type === "dir") {
               const li = document.createElement("li");
               li.textContent = item.name + ":";
-              li.dataset.search = item.name.toLowerCase(); // For search
+              li.dataset.search = item.name.toLowerCase();
+              li.dataset.id = item.name; // Unique ID for hierarchy
               reportList.appendChild(li);
-              allItems.push(li);
+              allItems.push({ element: li, parentId: null });
 
               fetch(item.url)
                 .then(res => res.json())
@@ -87,9 +88,11 @@
                       if (file.type === "dir") {
                         const subLi = document.createElement("li");
                         subLi.textContent = file.name + ":";
-                        subLi.dataset.search = file.name.toLowerCase();
+                        subLi.dataset.search = `${item.name} ${file.name}`.toLowerCase();
+                        subLi.dataset.id = `${item.name}/${file.name}`;
+                        subLi.dataset.parentId = item.name;
                         ul.appendChild(subLi);
-                        allItems.push(subLi);
+                        allItems.push({ element: subLi, parentId: item.name });
 
                         fetch(file.url)
                           .then(subRes => subRes.json())
@@ -104,8 +107,9 @@
                                 fileA.textContent = subFile.name;
                                 fileLi.appendChild(fileA);
                                 fileLi.dataset.search = `${item.name} ${file.name} ${subFile.name}`.toLowerCase();
+                                fileLi.dataset.parentId = `${item.name}/${file.name}`;
                                 subUl.appendChild(fileLi);
-                                allItems.push(fileLi);
+                                allItems.push({ element: fileLi, parentId: `${item.name}/${file.name}` });
                               }
                             });
                             if (subUl.children.length > 0) subLi.appendChild(subUl);
@@ -117,8 +121,9 @@
                         fileA.textContent = file.name;
                         fileLi.appendChild(fileA);
                         fileLi.dataset.search = `${item.name} ${file.name}`.toLowerCase();
+                        fileLi.dataset.parentId = item.name;
                         ul.appendChild(fileLi);
-                        allItems.push(fileLi);
+                        allItems.push({ element: fileLi, parentId: item.name });
                       }
                     }
                   });
@@ -131,8 +136,9 @@
               a.textContent = item.name;
               li.appendChild(a);
               li.dataset.search = item.name.toLowerCase();
+              li.dataset.id = item.name;
               reportList.appendChild(li);
-              allItems.push(li);
+              allItems.push({ element: li, parentId: null });
             }
           }
         });
@@ -140,9 +146,13 @@
         // Search functionality
         const searchBar = document.getElementById("search-bar");
         searchBar.addEventListener("input", () => {
-          const query = searchBar.value.toLowerCase();
+          const query = searchBar.value.toLowerCase().trim();
           allItems.forEach(item => {
-            item.classList.toggle("hidden", !item.dataset.search.includes(query));
+            const matchesSelf = item.element.dataset.search.includes(query);
+            const matchesParent = allItems.some(parent => 
+              parent.element.dataset.id === item.parentId && parent.element.dataset.search.includes(query)
+            );
+            item.element.classList.toggle("hidden", !(matchesSelf || matchesParent));
           });
         });
       })
