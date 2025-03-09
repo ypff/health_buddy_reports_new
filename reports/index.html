@@ -54,9 +54,9 @@
       .then(data => {
         const reportList = document.getElementById("report-list");
         data.forEach(item => {
-          if (item.name !== "index.html" && item.name !== "index.md") {  // Hide both index files
+          if (item.name !== "index.html" && item.name !== "index.md") {
             if (item.type === "dir") {
-              // Display folder name as text, not a link
+              // Display folder name as text
               const li = document.createElement("li");
               li.textContent = item.name + ":";
               reportList.appendChild(li);
@@ -68,12 +68,38 @@
                   ul.className = "subfolder";
                   files.forEach(file => {
                     if (file.name !== "index.html" && file.name !== "index.md") {
-                      const fileLi = document.createElement("li");
-                      const fileA = document.createElement("a");
-                      fileA.href = baseUrl + item.name + "/" + file.name;
-                      fileA.textContent = file.name;
-                      fileLi.appendChild(fileA);
-                      ul.appendChild(fileLi);
+                      if (file.type === "dir") {
+                        // Handle nested folder (e.g., "archived")
+                        const subLi = document.createElement("li");
+                        subLi.textContent = file.name + ":";
+                        ul.appendChild(subLi);
+
+                        fetch(file.url)
+                          .then(subRes => subRes.json())
+                          .then(subFiles => {
+                            const subUl = document.createElement("ul");
+                            subUl.className = "subfolder";
+                            subFiles.forEach(subFile => {
+                              if (subFile.name !== "index.html" && subFile.name !== "index.md") {
+                                const fileLi = document.createElement("li");
+                                const fileA = document.createElement("a");
+                                fileA.href = baseUrl + item.name + "/" + file.name + "/" + subFile.name;
+                                fileA.textContent = subFile.name;
+                                fileLi.appendChild(fileA);
+                                subUl.appendChild(fileLi);
+                              }
+                            });
+                            if (subUl.children.length > 0) subLi.appendChild(subUl);
+                          });
+                      } else {
+                        // Direct files in subfolder
+                        const fileLi = document.createElement("li");
+                        const fileA = document.createElement("a");
+                        fileA.href = baseUrl + item.name + "/" + file.name;
+                        fileA.textContent = file.name;
+                        fileLi.appendChild(fileA);
+                        ul.appendChild(fileLi);
+                      }
                     }
                   });
                   if (ul.children.length > 0) li.appendChild(ul);
