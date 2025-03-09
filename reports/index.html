@@ -37,17 +37,32 @@
     .subfolder {
       margin-left: 20px;
     }
+    #search-bar {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 20px;
+      background-color: #3a3a3a;
+      color: #d3d3d3;
+      border: 1px solid #d3d3d3;
+      font-size: 1em;
+    }
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <h1>Reports</h1>
   <p>Browse all reports below:</p>
+  <input type="text" id="search-bar" placeholder="Search reports (e.g., Long_COVID, Flu)...">
   <ul id="report-list"></ul>
   <p><a href="../">Back to Home</a></p>
 
   <script>
     const repoUrl = "https://api.github.com/repos/ypff/health_buddy_reports_new/contents/reports";
     const baseUrl = "https://ypff.github.io/health_buddy_reports_new/reports/";
+
+    let allItems = []; // Store all list items for filtering
 
     fetch(repoUrl)
       .then(response => response.json())
@@ -56,10 +71,11 @@
         data.forEach(item => {
           if (item.name !== "index.html" && item.name !== "index.md") {
             if (item.type === "dir") {
-              // Display folder name as text
               const li = document.createElement("li");
               li.textContent = item.name + ":";
+              li.dataset.search = item.name.toLowerCase(); // For search
               reportList.appendChild(li);
+              allItems.push(li);
 
               fetch(item.url)
                 .then(res => res.json())
@@ -69,10 +85,11 @@
                   files.forEach(file => {
                     if (file.name !== "index.html" && file.name !== "index.md") {
                       if (file.type === "dir") {
-                        // Handle nested folder (e.g., "archived")
                         const subLi = document.createElement("li");
                         subLi.textContent = file.name + ":";
+                        subLi.dataset.search = file.name.toLowerCase();
                         ul.appendChild(subLi);
+                        allItems.push(subLi);
 
                         fetch(file.url)
                           .then(subRes => subRes.json())
@@ -86,34 +103,47 @@
                                 fileA.href = baseUrl + item.name + "/" + file.name + "/" + subFile.name;
                                 fileA.textContent = subFile.name;
                                 fileLi.appendChild(fileA);
+                                fileLi.dataset.search = `${item.name} ${file.name} ${subFile.name}`.toLowerCase();
                                 subUl.appendChild(fileLi);
+                                allItems.push(fileLi);
                               }
                             });
                             if (subUl.children.length > 0) subLi.appendChild(subUl);
                           });
                       } else {
-                        // Direct files in subfolder
                         const fileLi = document.createElement("li");
                         const fileA = document.createElement("a");
                         fileA.href = baseUrl + item.name + "/" + file.name;
                         fileA.textContent = file.name;
                         fileLi.appendChild(fileA);
+                        fileLi.dataset.search = `${item.name} ${file.name}`.toLowerCase();
                         ul.appendChild(fileLi);
+                        allItems.push(fileLi);
                       }
                     }
                   });
                   if (ul.children.length > 0) li.appendChild(ul);
                 });
             } else {
-              // Direct files in reports/
               const li = document.createElement("li");
               const a = document.createElement("a");
               a.href = baseUrl + item.name;
               a.textContent = item.name;
               li.appendChild(a);
+              li.dataset.search = item.name.toLowerCase();
               reportList.appendChild(li);
+              allItems.push(li);
             }
           }
+        });
+
+        // Search functionality
+        const searchBar = document.getElementById("search-bar");
+        searchBar.addEventListener("input", () => {
+          const query = searchBar.value.toLowerCase();
+          allItems.forEach(item => {
+            item.classList.toggle("hidden", !item.dataset.search.includes(query));
+          });
         });
       })
       .catch(error => console.error("Error fetching repo contents:", error));
