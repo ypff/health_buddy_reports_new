@@ -2,7 +2,7 @@ name: Weekly Reorganize and Push
 on:
   schedule:
     - cron: '0 0 * * 1' # Every Monday at midnight UTC
-  workflow_dispatch: # Manual trigger option
+  workflow_dispatch:
 jobs:
   reorganize-and-push:
     runs-on: ubuntu-latest
@@ -15,25 +15,19 @@ jobs:
           cd temp
           cp -r ../reports .
           cp -r ../summaries .
-          # Collect all unique disease names (case-insensitive)
           declare -A disease_map
           for dir in reports/* summaries/*; do
             [ -d "$dir" ] || continue
             disease_name=$(basename "$dir")
-            # Convert to lowercase for matching
             disease_lower=$(echo "$disease_name" | tr '[:upper:]' '[:lower:]')
-            # Standardize to camel case (e.g., Multiple_Myeloma)
             disease_camel=$(echo "$disease_name" | awk -F'_' '{for(i=1;i<=NF;i++)$i=toupper(substr($i,1,1))tolower(substr($i,2));}1' OFS='')
-            # Store camel case name, preferring summaries' presence
             if [[ "$dir" =~ ^summaries/ || -z "${disease_map[$disease_lower]}" ]]; then
               disease_map["$disease_lower"]="$disease_camel"
             fi
           done
-          # Reorganize based on normalized names
           for disease_lower in "${!disease_map[@]}"; do
             disease_name="${disease_map[$disease_lower]}"
             mkdir -p "$disease_name/reports" "$disease_name/summaries"
-            # Move reports (case-insensitive match)
             for report_dir in reports/*; do
               [ -d "$report_dir" ] || continue
               report_base=$(basename "$report_dir" | tr '[:upper:]' '[:lower:]')
@@ -42,7 +36,6 @@ jobs:
                 rmdir "$report_dir" 2>/dev/null || true
               fi
             done
-            # Move summaries (case-insensitive match)
             for summary_dir in summaries/*; do
               [ -d "$summary_dir" ] || continue
               summary_base=$(basename "$summary_dir" | tr '[:upper:]' '[:lower:]')
@@ -53,12 +46,12 @@ jobs:
             done
           done
           rmdir reports summaries 2>/dev/null || true
-          # Dynamic index.html
+          # Dynamic root index.html with explicit trailing slashes
           echo "<!DOCTYPE html><html><body><h1>Health Buddy Reports</h1><ul>" > index.html
           for disease in *; do
             if [ -d "$disease" ] && [ "$disease" != "reports" ] && [ "$disease" != "summaries" ]; then
-              echo "<li><a href=\"$disease/reports/\">$disease Reports</a></li>" >> index.html
-              echo "<li><a href=\"$disease/summaries/\">$disease Summaries</a></li>" >> index.html
+              echo "<li><a href=\"./$disease/reports/\">$disease Reports</a></li>" >> index.html
+              echo "<li><a href=\"./$disease/summaries/\">$disease Summaries</a></li>" >> index.html
             fi
           done
           echo "</ul></body></html>" >> index.html
