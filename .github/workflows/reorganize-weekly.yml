@@ -46,15 +46,37 @@ jobs:
             done
           done
           rmdir reports summaries 2>/dev/null || true
-          # Dynamic root index.html with explicit trailing slashes
-          echo "<!DOCTYPE html><html><body><h1>Health Buddy Reports</h1><ul>" > index.html
+          # Root index.html for theme
+          echo "<!DOCTYPE html><html><body><h1>Health Buddy Reports</h1><p>Explore reports and summaries by disease:</p><ul>" > index.html
           for disease in *; do
             if [ -d "$disease" ] && [ "$disease" != "reports" ] && [ "$disease" != "summaries" ]; then
               echo "<li><a href=\"./$disease/reports/\">$disease Reports</a></li>" >> index.html
               echo "<li><a href=\"./$disease/summaries/\">$disease Summaries</a></li>" >> index.html
+              # Auto-generate reports index
+              echo "<!DOCTYPE html><html><body><h1>$disease Reports</h1><ul>" > "$disease/reports/index.html"
+              for item in "$disease/reports"/*; do
+                if [ -e "$item" ]; then
+                  item_name=$(basename "$item")
+                  echo "<li><a href=\"./$item_name\">$item_name</a></li>" >> "$disease/reports/index.html"
+                fi
+              done
+              echo "</ul></body></html>" >> "$disease/reports/index.html"
+              # Auto-generate summaries index
+              echo "<!DOCTYPE html><html><body><h1>$disease Summaries</h1><ul>" > "$disease/summaries/index.html"
+              for item in "$disease/summaries"/*; do
+                if [ -e "$item" ]; then
+                  item_name=$(basename "$item")
+                  echo "<li><a href=\"./$item_name\">$item_name</a></li>" >> "$disease/summaries/index.html"
+                fi
+              done
+              echo "</ul></body></html>" >> "$disease/summaries/index.html"
             fi
           done
           echo "</ul></body></html>" >> index.html
+          # Add _config.yml for theme
+          echo "theme: jekyll-theme-minimal" > _config.yml
+          echo "title: Health Buddy Reports" >> _config.yml
+          echo "description: Reorganized reports and summaries by disease" >> _config.yml
       - name: Push to new repo
         run: |
           cd temp
