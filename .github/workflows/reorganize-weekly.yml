@@ -9,12 +9,6 @@ jobs:
     steps:
       - name: Checkout original repo
         uses: actions/checkout@v3
-      - name: Checkout target repo
-        uses: actions/checkout@v3
-        with:
-          repository: ypff/health_buddy_reports_page
-          token: ${{ secrets.REPO_TOKEN }}
-          path: target
       - name: Reorganize structure
         run: |
           mkdir -p temp
@@ -33,12 +27,12 @@ jobs:
           done
           for topic_lower in "${!topic_map[@]}"; do
             topic_name="${topic_map[$topic_lower]}"
-            mkdir -p "../target/$topic_name/reports" "../target/$topic_name/summaries"
+            mkdir -p "$topic_name/reports" "$topic_name/summaries"
             for report_dir in reports/*; do
               [ -d "$report_dir" ] || continue
               report_base=$(basename "$report_dir" | tr '[:upper:]' '[:lower:]')
               if [ "$report_base" = "$topic_lower" ]; then
-                mv "$report_dir"/* "../target/$topic_name/reports/" 2>/dev/null || true
+                mv "$report_dir"/* "$topic_name/reports/" 2>/dev/null || true
                 rmdir "$report_dir" 2>/dev/null || true
               fi
             done
@@ -46,16 +40,16 @@ jobs:
               [ -d "$summary_dir" ] || continue
               summary_base=$(basename "$summary_dir" | tr '[:upper:]' '[:lower:]')
               if [ "$summary_base" = "$topic_lower" ]; then
-                mv "$summary_dir"/* "../target/$topic_name/summaries/" 2>/dev/null || true
+                mv "$summary_dir"/* "$topic_name/summaries/" 2>/dev/null || true
                 rmdir "$summary_dir" 2>/dev/null || true
               fi
             done
           done
-          # Generate index.html
-          echo "<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body><h1>Health Buddy Reports</h1><p>Explore reports and summaries by topics:</p>" > "../target/index.html"
+          rmdir reports summaries 2>/dev/null || true
+          echo "<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body><h1>Health Buddy Reports</h1><p>Explore reports and summaries by topics:</p>" > index.html
           for topic in *; do
             if [ -d "$topic" ] && [ "$topic" != "reports" ] && [ "$topic" != "summaries" ]; then
-              echo "<h2>$topic</h2><ul>" >> "../target/index.html"
+              echo "<h2>$topic</h2><ul>" >> index.html
               find "$topic/reports" "$topic/summaries" -type f | while read -r file; do
                 filename=$(basename "$file")
                 if [[ "$filename" =~ [0-9]{14} ]]; then
@@ -75,18 +69,28 @@ jobs:
                 fi
               done | sort -r -n | cut -d'|' -f2- | while IFS='|' read -r path human_time; do
                 file_name=$(basename "$path")
-                echo "<li><a href=\"./$path\">$file_name</a> ($human_time)</li>" >> "../target/index.html"
+                echo "<li><a href=\"./$path\">$file_name</a> ($human_time)</li>" >> index.html
               done
-              echo "</ul>" >> "../target/index.html"
+              echo "</ul>" >> index.html
             fi
           done
-          echo "</body></html>" >> "../target/index.html"
+          echo "</body></html>" >> index.html
+          # Updated _config.yml for Markdown rendering
+          echo "theme: jekyll-theme-cayman" > _config.yml
+          echo "title: Health Buddy Reports" >> _config.yml
+          echo "description: Reorganized reports and summaries by topics" >> _config.yml
+          echo "show_downloads: false" >> _config.yml
+          echo "markdown: kramdown" >> _config.yml  # Enable Markdown processing
+          echo "kramdown:" >> _config.yml
+          echo "  input: GFM" >> _config.yml     # GitHub Flavored Markdown
       - name: Push to new repo
         run: |
-          cd ../target  # Correct path from temp/ to target/
-          ls -la  # Debug: List contents to confirm target/ exists
+          cd temp
+          git init
           git config user.name "ypff"
           git config user.email "yue.pu@student.fairfield.edu"
           git add .
-          git commit -m "Weekly update - $(date -u +'%Y-%m-%d %H:%M UTC')" || echo "No changes to commit"
-          git push
+          git commit -m "Weekly reorganized structure - $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git branch -M main
+          git remote add origin https://x-access-token:${{ secrets.REPO_TOKEN }}@github.com/ypff/health_buddy_reports_page.git
+          git push -f origin main
