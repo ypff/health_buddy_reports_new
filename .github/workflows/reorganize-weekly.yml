@@ -1,0 +1,50 @@
+name: Weekly Reorganize and Push
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Every Monday at midnight UTC
+  workflow_dispatch: # Manual trigger option
+jobs:
+  reorganize-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout original repo
+        uses: actions/checkout@v3
+      - name: Reorganize structure
+        run: |
+          mkdir -p temp
+          cd temp
+          cp -r ../reports .
+          cp -r ../summaries .
+          for disease in reports/*; do
+            disease_name=$(basename "$disease")
+            [ -d "$disease" ] || continue
+            mkdir -p "$disease_name/reports" "$disease_name/summaries"
+            if [ -d "reports/$disease_name" ]; then
+              mv "reports/$disease_name"/* "$disease_name/reports/" 2>/dev/null || true
+              rmdir "reports/$disease_name" 2>/dev/null || true
+            fi
+            if [ -d "summaries/$disease_name" ]; then
+              mv "summaries/$disease_name"/* "$disease_name/summaries/" 2>/dev/null || true
+              rmdir "summaries/$disease_name" 2>/dev/null || true
+            fi
+          done
+          rmdir reports summaries 2>/dev/null || true
+          echo "<!DOCTYPE html><html><body><h1>Health Buddy Reports</h1><ul>" > index.html
+          for disease in *; do
+            if [ -d "$disease" ] && [ "$disease" != "reports" ] && [ "$disease" != "summaries" ]; then
+              echo "<li><a href=\"$disease/reports/\">$disease Reports</a></li>" >> index.html
+              echo "<li><a href=\"$disease/summaries/\">$disease Summaries</a></li>" >> index.html
+            fi
+          done
+          echo "</ul></body></html>" >> index.html
+      - name: Push to new repo
+        run: |
+          cd temp
+          git init
+          git config user.name "ypff"
+          git config user.email "yue.pu@student.fairfield.edu"
+          git add .
+          git commit -m "Weekly reorganized structure - $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git branch -M main
+          git remote add origin https://x-access-token:${{ secrets.REPO_TOKEN }}@github.com/ypff/health_buddy_reports_page.git
+          git push -f origin main
