@@ -46,10 +46,13 @@ jobs:
             done
           done
           rmdir reports summaries 2>/dev/null || true
-          echo "<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body><h1>Health Buddy Reports</h1><p>Explore reports and summaries by topics:</p>" > index.html
+          # Generate index.html with buttons and toggle
+          echo "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>.file-list { display: none; } .file-list.active { display: block; }</style></head><body><h1>Health Buddy Reports</h1><p>Explore reports and summaries by topics:</p>" > index.html
+          echo "<script>function toggleList(id) { var list = document.getElementById(id); list.classList.toggle('active'); }</script>" >> index.html
           for topic in *; do
             if [ -d "$topic" ] && [ "$topic" != "reports" ] && [ "$topic" != "summaries" ]; then
-              echo "<h2>$topic</h2><ul>" >> index.html
+              echo "<button onclick=\"toggleList('$topic-list')\">$topic</button>" >> index.html
+              echo "<ul id=\"$topic-list\" class=\"file-list\">" >> index.html
               find "$topic/reports" "$topic/summaries" -type f | while read -r file; do
                 filename=$(basename "$file")
                 if [[ "$filename" =~ [0-9]{14} ]]; then
@@ -80,9 +83,9 @@ jobs:
           echo "title: Health Buddy Reports" >> _config.yml
           echo "description: Reorganized reports and summaries by topics" >> _config.yml
           echo "show_downloads: false" >> _config.yml
-          echo "markdown: kramdown" >> _config.yml  # Enable Markdown processing
+          echo "markdown: kramdown" >> _config.yml
           echo "kramdown:" >> _config.yml
-          echo "  input: GFM" >> _config.yml     # GitHub Flavored Markdown
+          echo "  input: GFM" >> _config.yml
       - name: Push to new repo
         run: |
           cd temp
