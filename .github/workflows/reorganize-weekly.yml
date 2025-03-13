@@ -46,7 +46,6 @@ jobs:
             done
           done
           rmdir reports summaries 2>/dev/null || true
-          # Generate root index.html with topics and sorted files by filename timestamp
           echo "<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body><h1>Health Buddy Reports</h1><p>Explore reports and summaries by topics:</p>" > index.html
           for topic in *; do
             if [ -d "$topic" ] && [ "$topic" != "reports" ] && [ "$topic" != "summaries" ]; then
@@ -76,11 +75,14 @@ jobs:
             fi
           done
           echo "</body></html>" >> index.html
-          # Theme config with "topics"
+          # Updated _config.yml for Markdown rendering
           echo "theme: jekyll-theme-cayman" > _config.yml
           echo "title: Health Buddy Reports" >> _config.yml
           echo "description: Reorganized reports and summaries by topics" >> _config.yml
           echo "show_downloads: false" >> _config.yml
+          echo "markdown: kramdown" >> _config.yml  # Enable Markdown processing
+          echo "kramdown:" >> _config.yml
+          echo "  input: GFM" >> _config.yml     # GitHub Flavored Markdown
       - name: Push to new repo
         run: |
           cd temp
