@@ -83,7 +83,8 @@ jobs:
           echo "</body></html>" >> "../target/index.html"
       - name: Push to new repo
         run: |
-          cd ../target
+          cd ../target  # Correct path from temp/ to target/
+          ls -la  # Debug: List contents to confirm target/ exists
           git config user.name "ypff"
           git config user.email "yue.pu@student.fairfield.edu"
           git add .
