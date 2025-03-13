@@ -1,7 +1,7 @@
 name: Weekly Reorganize and Push
 on:
   schedule:
-    - cron: '0 0 * * 1' # Every Monday at midnight UTC
+    - cron: '0 0 * * 1'
   workflow_dispatch:
 jobs:
   reorganize-and-push:
@@ -15,68 +15,72 @@ jobs:
           cd temp
           cp -r ../reports .
           cp -r ../summaries .
-          declare -A disease_map
+          declare -A topic_map
           for dir in reports/* summaries/*; do
             [ -d "$dir" ] || continue
-            disease_name=$(basename "$dir")
-            disease_lower=$(echo "$disease_name" | tr '[:upper:]' '[:lower:]')
-            disease_camel=$(echo "$disease_name" | awk -F'_' '{for(i=1;i<=NF;i++)$i=toupper(substr($i,1,1))tolower(substr($i,2));}1' OFS='')
-            if [[ "$dir" =~ ^summaries/ || -z "${disease_map[$disease_lower]}" ]]; then
-              disease_map["$disease_lower"]="$disease_camel"
+            topic_name=$(basename "$dir")
+            topic_lower=$(echo "$topic_name" | tr '[:upper:]' '[:lower:]')
+            topic_camel=$(echo "$topic_name" | awk -F'_' '{for(i=1;i<=NF;i++)$i=toupper(substr($i,1,1))tolower(substr($i,2));}1' OFS='')
+            if [[ "$dir" =~ ^summaries/ || -z "${topic_map[$topic_lower]}" ]]; then
+              topic_map["$topic_lower"]="$topic_camel"
             fi
           done
-          for disease_lower in "${!disease_map[@]}"; do
-            disease_name="${disease_map[$disease_lower]}"
-            mkdir -p "$disease_name/reports" "$disease_name/summaries"
+          for topic_lower in "${!topic_map[@]}"; do
+            topic_name="${topic_map[$topic_lower]}"
+            mkdir -p "$topic_name/reports" "$topic_name/summaries"
             for report_dir in reports/*; do
               [ -d "$report_dir" ] || continue
               report_base=$(basename "$report_dir" | tr '[:upper:]' '[:lower:]')
-              if [ "$report_base" = "$disease_lower" ]; then
-                mv "$report_dir"/* "$disease_name/reports/" 2>/dev/null || true
+              if [ "$report_base" = "$topic_lower" ]; then
+                mv "$report_dir"/* "$topic_name/reports/" 2>/dev/null || true
                 rmdir "$report_dir" 2>/dev/null || true
               fi
             done
             for summary_dir in summaries/*; do
               [ -d "$summary_dir" ] || continue
               summary_base=$(basename "$summary_dir" | tr '[:upper:]' '[:lower:]')
-              if [ "$summary_base" = "$disease_lower" ]; then
-                mv "$summary_dir"/* "$disease_name/summaries/" 2>/dev/null || true
+              if [ "$summary_base" = "$topic_lower" ]; then
+                mv "$summary_dir"/* "$topic_name/summaries/" 2>/dev/null || true
                 rmdir "$summary_dir" 2>/dev/null || true
               fi
             done
           done
           rmdir reports summaries 2>/dev/null || true
-          # Root index.html for theme
-          echo "<!DOCTYPE html><html><body><h1>Health Buddy Reports</h1><p>Explore reports and summaries by disease:</p><ul>" > index.html
-          for disease in *; do
-            if [ -d "$disease" ] && [ "$disease" != "reports" ] && [ "$disease" != "summaries" ]; then
-              echo "<li><a href=\"./$disease/reports/\">$disease Reports</a></li>" >> index.html
-              echo "<li><a href=\"./$disease/summaries/\">$disease Summaries</a></li>" >> index.html
-              # Auto-generate reports index
-              echo "<!DOCTYPE html><html><body><h1>$disease Reports</h1><ul>" > "$disease/reports/index.html"
-              for item in "$disease/reports"/*; do
-                if [ -e "$item" ]; then
-                  item_name=$(basename "$item")
-                  echo "<li><a href=\"./$item_name\">$item_name</a></li>" >> "$disease/reports/index.html"
+          # Generate root index.html with topics and sorted files by filename timestamp
+          echo "<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body><h1>Health Buddy Reports</h1><p>Explore reports and summaries by topics:</p>" > index.html
+          for topic in *; do
+            if [ -d "$topic" ] && [ "$topic" != "reports" ] && [ "$topic" != "summaries" ]; then
+              echo "<h2>$topic</h2><ul>" >> index.html
+              find "$topic/reports" "$topic/summaries" -type f | while read -r file; do
+                filename=$(basename "$file")
+                if [[ "$filename" =~ [0-9]{14} ]]; then
+                  timestamp="${BASH_REMATCH[0]}"
+                  year=${timestamp:0:4}
+                  month=${timestamp:4:2}
+                  day=${timestamp:6:2}
+                  hour=${timestamp:8:2}
+                  minute=${timestamp:10:2}
+                  second=${timestamp:12:2}
+                  epoch=$(date -d "$year-$month-$day $hour:$minute:$second" +%s)
+                  human_time="$year-$month-$day $hour:$minute:$second"
+                  rel_path="${file#./}"
+                  echo "$epoch|$rel_path|$human_time"
+                else
+                  echo "0|$file|Unknown Date"
                 fi
+              done | sort -r -n | cut -d'|' -f2- | while IFS='|' read -r path human_time; do
+                file_name=$(basename "$path")
+                echo "<li><a href=\"./$path\">$file_name</a> ($human_time)</li>" >> index.html
               done
-              echo "</ul></body></html>" >> "$disease/reports/index.html"
-              # Auto-generate summaries index
-              echo "<!DOCTYPE html><html><body><h1>$disease Summaries</h1><ul>" > "$disease/summaries/index.html"
-              for item in "$disease/summaries"/*; do
-                if [ -e "$item" ]; then
-                  item_name=$(basename "$item")
-                  echo "<li><a href=\"./$item_name\">$item_name</a></li>" >> "$disease/summaries/index.html"
-                fi
-              done
-              echo "</ul></body></html>" >> "$disease/summaries/index.html"
+              echo "</ul>" >> index.html
             fi
           done
-          echo "</ul></body></html>" >> index.html
-          # Add _config.yml for theme
+          echo "</body></html>" >> index.html
+          # Theme config with "topics"
           echo "theme: jekyll-theme-cayman" > _config.yml
           echo "title: Health Buddy Reports" >> _config.yml
-          echo "description: Reorganized reports and summaries by disease" >> _config.yml
+          echo "description: Reorganized reports and summaries by topics" >> _config.yml
+          echo "show_downloads: false" >> _config.yml
       - name: Push to new repo
         run: |
           cd temp
