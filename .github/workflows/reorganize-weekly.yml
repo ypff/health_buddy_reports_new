@@ -74,7 +74,7 @@ jobs:
           done
           echo "</ul></body></html>" >> index.html
           # Add _config.yml for theme
-          echo "theme: jekyll-theme-minimal" > _config.yml
+          echo "theme: jekyll-theme-cayman" > _config.yml
           echo "title: Health Buddy Reports" >> _config.yml
           echo "description: Reorganized reports and summaries by disease" >> _config.yml
       - name: Push to new repo
